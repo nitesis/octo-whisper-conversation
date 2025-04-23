@@ -1,5 +1,5 @@
-# hand-pose-octo-invention
-An experimental approach to drive me, myself and the teachable machine completely crazy 
+# octo-whisper-conversation
+Conversational Language Models tu run locally, mutate and visualize 
 
 ## ollama_poetry
 The idea is to run a local API on your machine. The LLM used hier is llama3.
