@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generative Text Contour Visualization</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #fff;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<script>
+let words = [];
+let wordPoints = [];
+let currentWordIndex = 0;
+let font;
+
+function preload() {
+  font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf');
+}
+
+function setup() {
+  createCanvas(800, 600);
+  textFont(font);
+  textSize(24);
+  fill(0); // Schwarze Farbe für Punkte
+  noStroke();
+  
+  // Simulierte Antwort von LLaMA
+  let response = "Die Zukunft ist offen und voller Möglichkeiten";
+  words = response.split(" ");
+  
+  // Erstelle Punkte für die Konturen jedes Wortes
+  for (let i = 0; i < words.length; i++) {
+    let word = words[i];
+    let points = font.textToPoints(word, 0, 0, 24, {
+      sampleFactor: 0.25, // Dichte der Punkte
+      simplifyThreshold: 0
+    });
+    wordPoints.push(points);
+  }
+}
+
+function draw() {
+  // Kein background(), damit Wörter nicht ausgeblendet werden
+  // Erste Frame: Weißer Hintergrund
+  if (frameCount === 1) {
+    background(255);
+  }
+  
+  // Zeige Wörter nacheinander an
+  for (let i = 0; i < Math.min(currentWordIndex, words.length); i++) {
+    let points = wordPoints[i];
+    let xOffset = width / 2 + random(-100, 100); // Zufällige X-Position
+    let yOffset = height / 2 + i * 40 - (words.length * 40) / 2; // Vertikale Anordnung
+    let angle = random(-PI / 12, PI / 12); // Subtile Rotation
+    
+    push();
+    translate(xOffset, yOffset);
+    rotate(angle);
+    
+    // Zeichne Konturenpunkte mit leichter Verfremdung
+    for (let point of points) {
+      let x = point.x + random(-2, 2); // Zufällige Verschiebung für Verfremdung
+      let y = point.y + random(-2, 2);
+      ellipse(x, y, 2, 2); // Kleine Kreise für Konturen
+    }
+    pop();
+  }
+  
+  // Nächstes Wort nach 500ms anzeigen
+  if (frameCount % 30 == 0 && currentWordIndex < words.length) {
+    currentWordIndex++;
+  }
+}
+</script>
+</body>
+</html>
+
+
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+  <title>Generative Text Contour Visualization</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #fff;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<script>
+let words = [];
+let wordPoints = [];
+let wordStates = []; // Speichert den Zustand jedes Wortes (startTime, isText)
+let currentWordIndex = 0;
+let font;
+
+function preload() {
+  font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf');
+}
+
+function setup() {
+  createCanvas(800, 600);
+  textFont(font);
+  textSize(48); // Größere Schriftgröße für bessere Lesbarkeit
+  fill(0); // Schwarze Farbe für Punkte
+  noStroke();
+  
+  // Simulierte Antwort von LLaMA
+  let response = "Die Zukunft ist offen und voller Möglichkeiten";
+  words = response.split(" ");
+  
+  // Erstelle Punkte für die Konturen jedes Wortes
+  for (let i = 0; i < words.length; i++) {
+    let word = words[i];
+    let points = font.textToPoints(word, 0, 0, 24, {
+      sampleFactor: 0.25, // Dichte der Punkte
+      simplifyThreshold: 0
+    });
+    wordPoints.push(points);
+    wordStates.push({ startTime: 0, isText: true }); // Initialzustand: Text
+  }
+}
+
+function draw() {
+  // Kein background(), damit Wörter nicht ausgeblendet werden
+  // Erste Frame: Weißer Hintergrund
+  if (frameCount === 1) {
+    background(255);
+  }
+  
+  // Zeige Wörter nacheinander an
+  for (let i = 0; i < Math.min(currentWordIndex, words.length); i++) {
+    let points = wordPoints[i];
+    let xOffset = width / 2 + random(-100, 100); // Zufällige X-Position
+    let yOffset = height / 2 + i * 40 - (words.length * 40) / 2; // Vertikale Anordnung
+    let angle = random(-PI / 12, PI / 12); // Subtile Rotation
+    
+    push();
+    translate(xOffset, yOffset);
+    rotate(angle);
+    
+    // // Zeichne Konturenpunkte mit leichter Verfremdung
+    // for (let point of points) {
+    //   let x = point.x + random(-2, 2); // Zufällige Verschiebung für Verfremdung
+    //   let y = point.y + random(-2, 2);
+    //   ellipse(x, y, 2, 2); // Kleine Kreise für Konturen
+    // }
+    // pop();
+
+    // Entscheide, ob Text oder Konturen angezeigt werden
+    if (wordStates[i].isText) {
+      // Zeige normales Wort für 1 Sekunde (60 Frames)
+      text(words[i], 0, 0);
+      if (frameCount >= wordStates[i].startTime + 120) {
+        wordStates[i].isText = false; // Wechsel zu Konturen
+      }
+    } else {
+      // Zeige verfremdete Konturenpunkte
+      let points = wordPoints[i];
+      for (let point of points) {
+        let x = point.x + random(-2, 2); // Zufällige Verschiebung
+        let y = point.y + random(-2, 2);
+        ellipse(x, y, 2, 2); // Kleine Kreise für Konturen
+      }
+    }
+    pop();
+  }
+  
+//   // Nächstes Wort nach 500ms anzeigen
+//   if (frameCount % 30 == 0 && currentWordIndex < words.length) {
+//     currentWordIndex++;
+//   }
+
+   // Nächstes Wort nach 500ms anzeigen
+  if (frameCount % 30 == 0 && currentWordIndex < words.length) {
+    wordStates[currentWordIndex].startTime = frameCount; // Setze Startzeit
+    currentWordIndex++;
+  } 
+}
+</script>
+</body>
+</html> -->

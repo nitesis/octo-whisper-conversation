@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Nachzeichnender Text</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <style>
+    html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;   /* horizontal zentrieren */
+    align-items: center;       /* vertikal zentrieren */
+  }
+
+  canvas {
+    display: block;
+  }
+  </style>
+</head>
+<body>
+<script>
+let font;
+let basePoints = [];
+let fontSize = 128;
+let inputText = "Why AI?";
+let drawIndex = 0;
+
+function preload() {
+  font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Light.otf');
+}
+
+function setup() {
+  createCanvas(1000, 300);
+  noFill();
+  strokeWeight(1);
+
+  // Text zentriert setzen
+  let bounds = font.textBounds(inputText, 0, 0, fontSize);
+  let x = (width - bounds.w) / 2;
+  let y = (height + bounds.h) / 2;
+
+  // Textpunkte vorbereiten
+  basePoints = font.textToPoints(inputText, x, y, fontSize, {
+    sampleFactor: 0.2,
+    simplifyThreshold: 0
+  });
+}
+
+function draw() {
+  background(255);
+  beginShape();
+  for (let i = 0; i < drawIndex && i < basePoints.length; i++) {
+    let pt = basePoints[i];
+
+    // Optionale Verzerrung
+    let offsetX = map(noise(pt.x * 0.01, pt.y * 0.01, frameCount * 0.01), 0, 1, -1, 1);
+    let offsetY = map(noise(pt.y * 0.01, pt.x * 0.01, frameCount * 0.01), 0, 1, -1, 1);
+    let finalX = pt.x + offsetX;
+    let finalY = pt.y + offsetY;
+
+    vertex(finalX, finalY);
+  }
+  endShape();
+
+  if (drawIndex < basePoints.length) {
+    drawIndex += 2; // Zeichen-Geschwindigkeit
+  }
+}
+</script>
+</body>
+</html>
