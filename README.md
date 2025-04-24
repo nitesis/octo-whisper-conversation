@@ -63,17 +63,17 @@ Next go to your project folder an install node-fetch:
 `npm install node-fetch`
 
 Workflow
-### 1. Terminalfenster A – Modell starten
+### 1. Terminal window A – Start model
 `ollama run mistral`
 
-### 2. Terminalfenster B – Antwort holen
+### 2. Terminal window B – Get answer and save into words.json
 `cd path/to/ollama_poetry`
 `node index.js`
 If needed pull model before with 
 `ollama pull llama3`
 `ollama pull mistral`
 
-### 3. Terminalfenster C – Webserver starten
+### 3. Terminal window C – Start local webserver
 `cd path/to/ollama_poetry`
 `http-server`
 
