@@ -60,22 +60,22 @@ The project for mainly all prottotypes mentioned above works as follows
 llama is installed on your local machine --> https://ollama.com
 
 Next go to your porject folder an install node-fetch:
-(`npm install node-fetch`) 
+`npm install node-fetch`
 
 Workflow
 ### 1. Terminalfenster A – Modell starten
-(`ollama run mistral`)
+`ollama run mistral`
 
 ### 2. Terminalfenster B – Antwort holen
-(`cd path/to/ollama_poetry
-node index.js`) 
+`cd path/to/ollama_poetry`
+`node index.js`
 If needed pull model before with 
-(`ollama pull llama3`)
-(`ollama pull mistral`)
+`ollama pull llama3`
+`ollama pull mistral`
 
 ### 3. Terminalfenster C – Webserver starten
-(`cd path/to/ollama_poetry
-http-server`)
+`cd path/to/ollama_poetry`
+`http-server`
 
 ### 4. Browser → http://localhost:8080 öffnen
 opene localhost in browser and the magic should beginn
