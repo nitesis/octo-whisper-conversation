@@ -59,7 +59,7 @@ The project for mainly all prottotypes mentioned above works as follows
 ### Pre-conditions
 llama is installed on your local machine --> https://ollama.com
 
-Next go to your porject folder an install node-fetch:
+Next go to your project folder an install node-fetch:
 `npm install node-fetch`
 
 Workflow
