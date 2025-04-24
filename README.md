@@ -29,7 +29,7 @@ initial focus is on deconstructing the response into individual words, but futur
 iterations will explore identifying patterns and trends within the model's output.
 - ollama_poetry: A first draft by just showing a question followed by the deconstructed answer randomly word by word
 - ollama_generativeTypo_lineart: Question and deconstructed answer will be animated with outlines
-- ollama_generativeCloud: Decosntructed anwsers are shown as vertical black clouds looking like lines
+- ollama_generativeCloud: Deconstructed anwsers are shown as vertical black clouds looking like lines
 
 ### Conclusion and Outlook
 Preliminary findings suggest that this tool could provide valuable insights 
