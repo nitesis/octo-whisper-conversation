@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Steckspiel-Textanimation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <style>
+     html, body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;   /* horizontal zentrieren */
+    align-items: center;       /* vertikal zentrieren */
+  }
+
+  canvas {
+    display: block;
+  }
+  </style>
+</head>
+<body>
+<script>
+let font;
+let fontSize = 80;
+let gridSpacing = 15; //Kleinere Zahl 10 heisst dichteres Raster → bessere Konturgenauigkeit.
+let grid = [];
+let words = ["future", "now"];
+let wordPoints = [];
+let currentWord = 0;
+let animationProgress = 0;
+let animationSpeed = 0.01;
+let switching = false;
+
+function preload() {
+  font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Light.otf');
+}
+
+function setup() {
+  createCanvas(800, 300);
+  noStroke();
+  fill(255);
+
+  // Grid erstellen
+  for (let x = 0; x < width; x += gridSpacing) {
+    for (let y = 0; y < height; y += gridSpacing) {
+      grid.push(createVector(x, y));
+    }
+  }
+
+  // Punkte für jedes Wort vorbereiten
+  for (let w of words) {
+    let bounds = font.textBounds(w, 0, 0, fontSize);
+    let x = (width - bounds.w) / 2;
+    let y = (height + bounds.h) / 2;
+
+    let pts = font.textToPoints(w, x, y, fontSize, {
+      sampleFactor: 0.4, //Mehr Punkte = Buchstabenform wird klarer sichtbar
+      simplifyThreshold: 0
+    });
+    wordPoints.push(pts);
+  }
+}
+
+function draw() {
+  background(0);
+
+  // aktives Wort wählen
+  let pts = wordPoints[currentWord];
+
+  for (let gv of grid) {
+    // prüfen, ob dieser Gridpunkt nahe an einem Buchstabenpunkt liegt
+    let active = false;
+    for (let pt of pts) {
+      if (dist(gv.x, gv.y, pt.x, pt.y) < gridSpacing / 1.5) { //1.2 Leichte Unschärfe, aber bessere Lesbarkeit
+        active = true;
+        break;
+      }
+    }
+
+    // animiertes Ein-/Ausblenden
+    let alpha = active ? easeInOut(animationProgress) * 255 : 0;
+    fill(255, alpha);
+    ellipse(gv.x, gv.y, 5, 5);
+  }
+
+  // Animation steuern
+  if (!switching) {
+    animationProgress += animationSpeed;
+    if (animationProgress >= 1) {
+      animationProgress = 1;
+      switching = true;
+      setTimeout(() => {
+        currentWord = (currentWord + 1) % wordPoints.length;
+        animationProgress = 0;
+        switching = false;
+      }, 1000); // Pause zwischen Wörtern
+    }
+  }
+}
+
+// easing für weiches ein-/ausblenden
+function easeInOut(t) {
+  return t < 0.5
+    ? 2 * t * t
+    : -1 + (4 - 2 * t) * t;
+}
+</script>
+</body>
+</html>
