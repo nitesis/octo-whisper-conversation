@@ -53,7 +53,7 @@ Some advantegs of llama next to being locally on your machine
 The project for mainly all prottotypes mentioned above works as follows
 1. A prompt given (hard coded and in my example "Why AI?") will be send to the local API.
 2. The answer of the local LLM will be added word by word into an array.
-3. The elements of the arry will be shown on screen one after another in random order.
+3. The elements of the arry will be shown on screen one after another in random order. and with diffrent visualisations
 
 
 ### Pre-conditions
