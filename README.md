@@ -27,10 +27,11 @@ The current repository includes some prototypes that uses a prompt and view the
 generated responses in multiple visual formats. The 
 initial focus is on deconstructing the response into individual words, but future 
 iterations will explore identifying patterns and trends within the model's output.
-- ollama_poetry: A first draft by just showing a question followed by the deconstructed answer randomly word by word
+- ollama_generativeTypo_basis: A first draft by just showing a question followed by the deconstructed answer randomly word by word
 - ollama_generativeTypo_lineart: Question and deconstructed answer will be animated with outlines
-- ollama_generativeCloud: Deconstructed anwsers are shown as vertical black clouds looking like lines
-- ollama_generativeTyp_simpleGrid: Question and decustructed answers shown in a simple grid
+- ollama_generativeTypo_cloud: Deconstructed anwsers are shown as vertical black clouds looking like lines
+- ollama_generativeTypo_simpleGrid: Question and deconstructed answers shown in a simple grid
+- ollame_generativeTypo_flickeringGrid: Question and deconstructed answers shown in a flickering grid with different options to try out by clicking 1, 2 or 3
 
 ### Conclusion and Outlook
 Preliminary findings suggest that this tool could provide valuable insights 
