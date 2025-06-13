@@ -5,6 +5,10 @@ const fs = require('fs');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const app = express();
 
+const osc = require('osc');
+const WebSocket = require('ws');
+
+
 app.use(express.json());
 app.use(express.static('public')); // <<< nur public-Ordner wird statisch ausgeliefert
 
@@ -47,3 +51,37 @@ const port = 3000;
 app.listen(port, () => {
   console.log(`🚀 Server läuft auf http://localhost:${port}`);
 });
+
+// WebSocket-Server starten (Verbindet Server und Browser in Echtzeit)
+const wss = new WebSocket.Server({ port: 8081 });
+
+let clients = [];
+
+wss.on('connection', ws => {
+  console.log("🧩 WebSocket verbunden");
+  clients.push(ws);
+
+  ws.on('close', () => {
+    clients = clients.filter(client => client !== ws);
+  });
+});
+
+// OSC-Empfang einrichten
+const udpPort = new osc.UDPPort({
+    localAddress: "0.0.0.0",
+    localPort: 5000
+  });
+  
+  udpPort.on("message", function (oscMsg) {
+    console.log("🎮 GyrOSC-Daten empfangen:", oscMsg);
+  
+    const data = oscMsg.args;
+  
+    // an alle WebSocket-Clients senden
+    for (const client of clients) {
+      client.send(JSON.stringify({ gyro: data }));
+    }
+  });
+  
+  udpPort.open();
+  
