@@ -18,12 +18,12 @@ let playing = false;
 
 // Wenn du lokal testest, musst du ggf. eine Benutzerinteraktion wie Mausklick nutzen, 
 // um den Sound zu starten, z. B. in mousePressed():
-function mousePressed() {
-  userStartAudio(); // Muss einmalig aufgerufen werden
-}
+// function mousePressed() {
+//   userStartAudio(); // Muss einmalig aufgerufen werden
+// }
 
 //const socket = new WebSocket('ws://localhost:8081');
-const socket = new WebSocket('ws://192.168.1.100:8081');
+const socket = new WebSocket('ws://yourIP:8081');
 
 // Log, um zu prüfen, dass etwas ankommt
 socket.onopen = () => console.log("✅ WebSocket verbunden");
@@ -32,39 +32,39 @@ socket.onmessage = (event) => {
 };
 
 
-// socket.onmessage = function(event) {
-//   const data = JSON.parse(event.data);
-//   console.log("📡 Bewegungsdaten:", data.gyro);
-
-//   // Beispiel: benutze x, y, z Werte
-//   const [x, y, z] = data.gyro;
-
-//   // z.B. Kreis bewegen (falls du canvas benutzt):
-//   // moveCircle(x, y);
-// };
-
 socket.onmessage = function(event) {
   const data = JSON.parse(event.data);
+  console.log("📡 Bewegungsdaten:", data.gyro);
+
+  // Beispiel: benutze x, y, z Werte
   const [x, y, z] = data.gyro;
 
-  // Frequenz aus einem Gyro-Wert berechnen, z.B. x-Achse
-  let freq = map(x, -3, 3, 200, 800); // Wertebereich anpassen
-  freq = constrain(freq, 100, 1000);
-
-  // Lautstärke aus z-Achse
-  let volume = map(Math.abs(z), 0, 5, 0, 0.5);
-  volume = constrain(volume, 0, 0.5);
-
-  // Ton aktivieren
-  if (!playing) {
-    osc.amp(volume, 0.1); // Lautstärke langsam anpassen
-    osc.freq(freq, 0.1);  // Frequenz langsam anpassen
-    playing = true;
-  } else {
-    osc.amp(volume, 0.1);
-    osc.freq(freq, 0.1);
-  }
+  // z.B. Kreis bewegen (falls du canvas benutzt):
+  // moveCircle(x, y);
 };
+
+// socket.onmessage = function(event) {
+//   const data = JSON.parse(event.data);
+//   const [x, y, z] = data.gyro;
+
+//   // Frequenz aus einem Gyro-Wert berechnen, z.B. x-Achse
+//   let freq = map(x, -3, 3, 200, 800); // Wertebereich anpassen
+//   freq = constrain(freq, 100, 1000);
+
+//   // Lautstärke aus z-Achse
+//   let volume = map(Math.abs(z), 0, 5, 0, 0.5);
+//   volume = constrain(volume, 0, 0.5);
+
+//   // Ton aktivieren
+//   if (!playing) {
+//     osc.amp(volume, 0.1); // Lautstärke langsam anpassen
+//     osc.freq(freq, 0.1);  // Frequenz langsam anpassen
+//     playing = true;
+//   } else {
+//     osc.amp(volume, 0.1);
+//     osc.freq(freq, 0.1);
+//   }
+// };
 
 
 
@@ -88,9 +88,9 @@ function setup() {
   setupGrid();
   initAnimation();
 
-  osc = new p5.Oscillator('sine');
-  osc.start();
-  osc.amp(0); // Startet lautlos
+  // osc = new p5.Oscillator('sine');
+  // osc.start();
+  // osc.amp(0); // Startet lautlos
 
 }
 
