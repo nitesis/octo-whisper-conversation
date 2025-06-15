@@ -20,12 +20,6 @@ let playing = false;
 // Variable für Audiostart 
 let audioStarted = false;
 
-// Wenn du lokal testest, musst du ggf. eine Benutzerinteraktion wie Mausklick nutzen, 
-// um den Sound zu starten, z. B. in mousePressed():
-// function mousePressed() {
-//   userStartAudio(); // Muss einmalig aufgerufen werden
-// }
-
 //const socket = new WebSocket('ws://localhost:8081');
 const socket = new WebSocket('ws://yourIP:8081');
 
@@ -35,26 +29,8 @@ socket.onmessage = (event) => {
   console.log("📡 GyrOSC Daten empfangen:", event.data);
 };
 
-
-// socket.onmessage = function(event) {
-//   const data = JSON.parse(event.data);
-//   console.log("📡 Bewegungsdaten:", data.gyro);
-
-//   // Beispiel: benutze x, y, z Werte
-//   const [x, y, z] = data.gyro;
-
-//   // z.B. Kreis bewegen (falls du canvas benutzt):
-//   // moveCircle(x, y);
-// };
-
 socket.onmessage = function(event) {
   const data = JSON.parse(event.data);
-
-  // // Sicherstellen, dass data.gyro vorhanden und korrekt ist
-  // if (!data.gyro || !Array.isArray(data.gyro) || data.gyro.length < 3) {
-  //   console.warn("Ungültige Gyro-Daten:", data.gyro);
-  //   return;
-  // }
 
   // Nur weitermachen, wenn data.gyro existiert und aus 3 Zahlen besteht
   if (
@@ -70,29 +46,13 @@ socket.onmessage = function(event) {
 
   const [x, y, z] = data.gyro;
 
-  // Frequenz aus einem Gyro-Wert berechnen, z.B. x-Achse
-  // let freq = map(x, -3, 3, 200, 800); // Wertebereich anpassen
-  // freq = constrain(freq, 100, 1000);
-
   // Frequenz aus einem Gyro-Wert berechnen, z. B. x-Achse
   let freq = p5.prototype.map(x, -3, 3, 200, 800);
   freq = p5.prototype.constrain(freq, 100, 1000);
 
   // Lautstärke aus z-Achse
-  // let volume = map(Math.abs(z), 0, 5, 0, 0.5);
-  // volume = constrain(volume, 0, 0.5);
   let volume = p5.prototype.map(Math.abs(z), 0, 5, 0, 0.5);
   volume = p5.prototype.constrain(volume, 0, 0.5);
-
-  // // Ton aktivieren
-  // if (!playing) {
-  //   osc.amp(volume, 0.1); // Lautstärke langsam anpassen
-  //   osc.freq(freq, 0.1);  // Frequenz langsam anpassen
-  //   playing = true;
-  // } else {
-  //   osc.amp(volume, 0.1);
-  //   osc.freq(freq, 0.1);
-  // }
 
   // Sicherstellen, dass freq & volume gültige Werte sind
   if (isFinite(freq) && isFinite(volume)) {
@@ -109,8 +69,6 @@ socket.onmessage = function(event) {
     console.warn("Ungültige Werte:", freq, volume);
   }
 };
-
-
 
 const styles = [
   { name: "Clean", gridSpacing: 10, pointSize: 4, tolerance: 6, sampleFactor: 0.35 },
@@ -136,7 +94,6 @@ function setup() {
   osc = new p5.Oscillator('sine');
   osc.start();
   osc.amp(0); // Startet lautlos
-
 }
 
 function prepareTextPoints() {
@@ -167,17 +124,6 @@ function setupGrid() {
     }
   }
 }
-
-
-// function setupGrid() {
-//   grid = [];
-//   let spacing = styles[styleIndex].gridSpacing;
-//   for (let x = 0; x < width; x += spacing) {
-//     for (let y = 0; y < height; y += spacing) {
-//       grid.push(createVector(x, y));
-//     }
-//   }
-// }
 
 function initAnimation() {
   let totalPoints = grid.length;
