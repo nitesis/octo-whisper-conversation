@@ -49,6 +49,25 @@ socket.onmessage = (event) => {
 
 socket.onmessage = function(event) {
   const data = JSON.parse(event.data);
+
+  // // Sicherstellen, dass data.gyro vorhanden und korrekt ist
+  // if (!data.gyro || !Array.isArray(data.gyro) || data.gyro.length < 3) {
+  //   console.warn("Ungültige Gyro-Daten:", data.gyro);
+  //   return;
+  // }
+
+  // Nur weitermachen, wenn data.gyro existiert und aus 3 Zahlen besteht
+  if (
+    !data.gyro ||
+    !Array.isArray(data.gyro) ||
+    data.gyro.length < 3 ||
+    !data.gyro.every(n => typeof n === 'number')
+  ) {
+    console.warn("Ignorierte Nachricht – keine gültigen Gyro-Daten:", data);
+    return;
+  }
+
+
   const [x, y, z] = data.gyro;
 
   // Frequenz aus einem Gyro-Wert berechnen, z.B. x-Achse
