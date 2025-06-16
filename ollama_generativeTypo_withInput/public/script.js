@@ -102,17 +102,25 @@ class P5AudioSystem {
     console.log("🎵 P5AudioSystem initialized");
   }
 
-  playAudioSequence(audioParams) {
+  playAudioSequence(audioParams, wordIndex = null) {
     this.stopAll();
-    this.currentParams = audioParams;
+  
+    // If wordIndex is specified, play only that word's sound
+    if (wordIndex !== null && audioParams[wordIndex]) {
+      this.currentParams = [audioParams[wordIndex]];
+      console.log("🎶 Playing single word audio:", audioParams[wordIndex]);
+      this.playSound(audioParams[wordIndex]);
+    } else {
+      // Original behavior - play all sounds
+      this.currentParams = audioParams;
+      console.log("🎶 Playing audio sequence:", audioParams);
     
-    console.log("🎶 Playing audio sequence:", audioParams);
-    
-    audioParams.forEach((param, index) => {
-      setTimeout(() => {
-        this.playSound(param);
-      }, param.delay * 1000);
-    });
+      audioParams.forEach((param, index) => {
+        setTimeout(() => {
+          this.playSound(param);
+        }, param.delay * 1000);
+      });
+    }
 
     this.isPlaying = true;
   }
@@ -181,7 +189,6 @@ class P5AudioSystem {
   }
 }
 // ========== END NEW SECTION ==========
-
 
 function preload() {
   font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Light.otf');
@@ -306,18 +313,25 @@ function keyPressed() {
     prepareTextPoints();
     setupGrid();
     initAnimation();
-  } else if (key === 'N') {
+  } else if (key === 'n') {
     currentWord = (currentWord + 1) % wordPoints.length;
     initAnimation();
+
+    // NEW: Auto-play sound for new word
+    if (audioSystem && currentAudioParams.length > 0 && audioStarted) {
+      setTimeout(() => {
+        audioSystem.playAudioSequence(currentAudioParams, currentWord);
+      }, 200);
+    }
   }
 
    // ========== NEW: Audio control keys ==========
-  else if (key === 'P' || key === ' ') {
-    // Play ML-generated audio sequence
+  else if (key === 'p' || key === ' ') {
+    // Play ML-generated audio for current word only
     if (audioSystem && currentAudioParams.length > 0) {
-      audioSystem.playAudioSequence(currentAudioParams);
+      audioSystem.playAudioSequence(currentAudioParams, currentWord);
     }
-  } else if (key === 'S') {
+  } else if (key === 's') {
     // Stop all audio
     if (audioSystem) {
       audioSystem.stopAll();
@@ -352,7 +366,7 @@ function mousePressed() {
        // ========== NEW: Auto-play audio on first interaction ==========
       if (audioSystem && currentAudioParams.length > 0) {
         setTimeout(() => {
-          audioSystem.playAudioSequence(currentAudioParams);
+          audioSystem.playAudioSequence(currentAudioParams, currentWord);
         }, 500);
       }
       // ========== END NEW SECTION ==========
