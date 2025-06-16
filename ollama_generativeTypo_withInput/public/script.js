@@ -91,6 +91,9 @@ class P5AudioSystem {
     };
     this.isPlaying = false;
     this.gyroModulation = { x: 0, y: 0, z: 0 };
+    // ADD THESE LINES for coninously sound play of current word
+    this.isContinuous = false;
+    this.continuousParam = null;
   }
 
   init() {
@@ -234,6 +237,33 @@ playSound(param) {
     this.envelopes = [];
     this.isPlaying = false;
   }
+
+  // Method for playing sound of word continously
+  startContinuousPlay(audioParam) {
+  this.stopAll();
+  this.continuousParam = audioParam;
+  this.isContinuous = true;
+  this.playContinuousSound();
+  }
+
+  playContinuousSound() {
+    if (!this.isContinuous || !this.continuousParam) return;
+  
+    this.playSound(this.continuousParam);
+  
+    // Schedule next play based on duration
+    setTimeout(() => {
+     if (this.isContinuous) {
+        this.playContinuousSound();
+      }
+    }, this.continuousParam.duration * 1000);
+  }
+
+  stopContinuous() {
+    this.isContinuous = false;
+    this.continuousParam = null;
+    this.stopAll();
+  }
 }
 // ========== END NEW SECTION ==========
 
@@ -364,32 +394,36 @@ function keyPressed() {
   currentWord = (currentWord + 1) % wordPoints.length;
   initAnimation();
 
-  // NEW: Auto-play sound for new word
+  // Stop previous continuous sound and start new one
   if (audioSystem && currentAudioParams.length > 0 && audioStarted) {
-    // Adjust index: currentWord 0 is "Why AI?" which has no audio params
-    // So audio params start at currentWord - 1
     let audioIndex = currentWord - 1;
     if (audioIndex >= 0 && audioIndex < currentAudioParams.length) {
       setTimeout(() => {
-        audioSystem.playAudioSequence(currentAudioParams, audioIndex);
+        audioSystem.startContinuousPlay(currentAudioParams[audioIndex]);
       }, 200);
+    } else {
+      audioSystem.stopContinuous();
     }
   }
 }
 
    // ========== NEW: Audio control keys ==========
   else if (key === 'p' || key === ' ') {
-    // Play ML-generated audio for current word only
+    // Toggle continuous play for current word
     if (audioSystem && currentAudioParams.length > 0) {
       let audioIndex = currentWord - 1;
       if (audioIndex >= 0 && audioIndex < currentAudioParams.length) {
-        audioSystem.playAudioSequence(currentAudioParams, audioIndex);
+        if (audioSystem.isContinuous) {
+          audioSystem.stopContinuous();
+        } else {
+          audioSystem.startContinuousPlay(currentAudioParams[audioIndex]);
+        }
       }
     }
   } else if (key === 's') {
-    // Stop all audio
+    // Stop all audio including continuous
     if (audioSystem) {
-      audioSystem.stopAll();
+      audioSystem.stopContinuous();
     }
   }
   // ========== END NEW SECTION ==========
