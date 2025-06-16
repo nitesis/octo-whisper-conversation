@@ -13,12 +13,22 @@ let animationSpeed = 0.05;
 let loadedWords = [];
 let words = ["Why AI?"]; // Startfrage
 
-// Oscillator
+// // Oscillator
+// let osc;
+// let playing = false;
+
+// // Variable für Audiostart 
+// let audioStarted = false;
+
+// ========== MODIFIED: Enhanced oscillator system ==========
 let osc;
 let playing = false;
-
-// Variable für Audiostart 
 let audioStarted = false;
+
+// NEW: P5AudioSystem for ML-generated sounds
+let audioSystem;
+let currentAudioParams = [];
+// ========== END MODIFIED SECTION ==========
 
 //const socket = new WebSocket('ws://localhost:8081');
 const socket = new WebSocket('ws://yourIP:8081');
@@ -43,32 +53,58 @@ socket.onmessage = function(event) {
     return;
   }
 
-
   const [x, y, z] = data.gyro;
 
-  // Frequenz aus einem Gyro-Wert berechnen, z. B. x-Achse
+//   // Frequenz aus einem Gyro-Wert berechnen, z. B. x-Achse
+//   let freq = p5.prototype.map(x, -3, 3, 200, 800);
+//   freq = p5.prototype.constrain(freq, 100, 1000);
+
+//   // Lautstärke aus z-Achse
+//   let volume = p5.prototype.map(Math.abs(z), 0, 5, 0, 0.5);
+//   volume = p5.prototype.constrain(volume, 0, 0.5);
+
+//   // Sicherstellen, dass freq & volume gültige Werte sind
+//   if (isFinite(freq) && isFinite(volume)) {
+//     // Ton aktivieren
+//     if (!playing) {
+//       osc.amp(volume, 0.1); // Lautstärke langsam anpassen
+//       osc.freq(freq, 0.1);  // Frequenz langsam anpassen
+//       playing = true;
+//     } else {
+//       osc.amp(volume, 0.1);
+//       osc.freq(freq, 0.1);
+//     }
+//   } else {
+//     console.warn("Ungültige Werte:", freq, volume);
+//   }
+
+// ========== MODIFIED: Enhanced gyro control ==========
+  // Apply gyro data to both old oscillator AND new audio system
   let freq = p5.prototype.map(x, -3, 3, 200, 800);
   freq = p5.prototype.constrain(freq, 100, 1000);
-
-  // Lautstärke aus z-Achse
   let volume = p5.prototype.map(Math.abs(z), 0, 5, 0, 0.5);
   volume = p5.prototype.constrain(volume, 0, 0.5);
 
-  // Sicherstellen, dass freq & volume gültige Werte sind
+  // Old oscillator (keeping for backup)
   if (isFinite(freq) && isFinite(volume)) {
-    // Ton aktivieren
     if (!playing) {
-      osc.amp(volume, 0.1); // Lautstärke langsam anpassen
-      osc.freq(freq, 0.1);  // Frequenz langsam anpassen
+      osc.amp(volume, 0.1);
+      osc.freq(freq, 0.1);
       playing = true;
     } else {
       osc.amp(volume, 0.1);
       osc.freq(freq, 0.1);
     }
-  } else {
-    console.warn("Ungültige Werte:", freq, volume);
   }
+
+  // NEW: Apply gyro to audio system
+  if (audioSystem) {
+    audioSystem.applyGyroModulation(x, y, z);
+  }
+  // ========== END MODIFIED SECTION ==========
 };
+
+
 
 const styles = [
   { name: "Clean", gridSpacing: 10, pointSize: 4, tolerance: 6, sampleFactor: 0.35 },
@@ -76,11 +112,132 @@ const styles = [
   { name: "Chunky", gridSpacing: 15, pointSize: 7, tolerance: 8, sampleFactor: 0.2 }
 ];
 
+// ========== NEW: P5AudioSystem Class ==========
+class P5AudioSystem {
+  constructor() {
+    this.oscillators = [];
+    this.envelopes = [];
+    this.effects = {
+      reverb: null,
+      delay: null,
+      filter: null
+    };
+    this.isPlaying = false;
+    this.gyroModulation = { x: 0, y: 0, z: 0 };
+  }
+
+  init() {
+    // Initialize effects
+    this.effects.reverb = new p5.Reverb();
+    this.effects.delay = new p5.Delay();
+    this.effects.filter = new p5.LowPass();
+    
+    console.log("🎵 P5AudioSystem initialized");
+  }
+
+  playAudioSequence(audioParams) {
+    this.stopAll();
+    this.currentParams = audioParams;
+    
+    console.log("🎶 Playing audio sequence:", audioParams);
+    
+    audioParams.forEach((param, index) => {
+      setTimeout(() => {
+        this.playSound(param);
+      }, param.delay * 1000);
+    });
+
+    this.isPlaying = true;
+  }
+
+  playSound(param) {
+    // Create oscillator
+    let osc = new p5.Oscillator(param.waveform);
+    let env = new p5.Envelope();
+    
+    // Configure envelope
+    env.setADSR(param.attack, 0.1, 0.3, param.release);
+    env.setRange(0.3, 0);
+    
+    // Set frequency with some gyro modulation
+    let modulatedFreq = param.frequency + (this.gyroModulation.x * 50);
+    osc.freq(modulatedFreq);
+    
+    // Apply effects
+    osc.disconnect();
+    osc.connect(this.effects.filter);
+    this.effects.filter.connect(this.effects.delay);
+    this.effects.delay.connect(this.effects.reverb);
+    
+    // Start sound
+    osc.start();
+    env.play(osc);
+    
+    // Store references
+    this.oscillators.push(osc);
+    this.envelopes.push(env);
+    
+    // Clean up after duration
+    setTimeout(() => {
+      osc.stop();
+      this.oscillators = this.oscillators.filter(o => o !== osc);
+      this.envelopes = this.envelopes.filter(e => e !== env);
+    }, param.duration * 1000);
+
+    console.log(`🔊 Playing: ${param.word} (${param.category}) at ${param.frequency}Hz`);
+  }
+
+  applyGyroModulation(x, y, z) {
+    this.gyroModulation = { x, y, z };
+    
+    // Apply real-time modulation to active oscillators
+    this.oscillators.forEach((osc, index) => {
+      if (this.currentParams && this.currentParams[index]) {
+        let baseFreq = this.currentParams[index].frequency;
+        let modulatedFreq = baseFreq + (x * 30) + (y * 20);
+        osc.freq(modulatedFreq, 0.1);
+      }
+    });
+
+    // Modulate effects
+    if (this.effects.filter) {
+      let filterFreq = p5.prototype.map(Math.abs(z), 0, 3, 200, 2000);
+      this.effects.filter.freq(filterFreq);
+    }
+  }
+
+  stopAll() {
+    this.oscillators.forEach(osc => osc.stop());
+    this.oscillators = [];
+    this.envelopes = [];
+    this.isPlaying = false;
+  }
+}
+// ========== END NEW SECTION ==========
+
+
 function preload() {
   font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Light.otf');
-  loadedWords = loadJSON('words.json', () => {
-    words = ["Why AI?"].concat(Object.values(loadedWords));
+    
+  // loadedWords = loadJSON('words.json', () => {
+  //   words = ["Why AI?"].concat(Object.values(loadedWords));
+  // });
+// ========== MODIFIED: Load enhanced word data ==========
+  loadedWords = loadJSON('words.json', (data) => {
+    if (data.words && data.audioParams) {
+      // New format with audio parameters
+      words = ["Why AI?"].concat(data.words);
+      currentAudioParams = data.audioParams;
+      console.log("✅ Loaded words with audio params:", currentAudioParams);
+    } else if (Array.isArray(data)) {
+      // Old format compatibility
+      words = ["Why AI?"].concat(data);
+    } else {
+      console.warn("Unknown words.json format:", data);
+    }
   });
+  // ========== END MODIFIED SECTION ==========
+
 }
 
 function setup() {
@@ -90,10 +247,15 @@ function setup() {
   setupGrid();
   initAnimation();
 
-  // Oscillator initialisieren
+  // Old oscillator (keeping for backup)
   osc = new p5.Oscillator('sine');
   osc.start();
   osc.amp(0); // Startet lautlos
+
+  // ========== NEW: Initialize audio system ==========
+  audioSystem = new P5AudioSystem();
+  audioSystem.init();
+  // ========== END NEW SECTION ==========
 }
 
 function prepareTextPoints() {
@@ -184,14 +346,43 @@ function keyPressed() {
     currentWord = (currentWord + 1) % wordPoints.length;
     initAnimation();
   }
+
+   // ========== NEW: Audio control keys ==========
+  else if (key === 'P' || key === ' ') {
+    // Play ML-generated audio sequence
+    if (audioSystem && currentAudioParams.length > 0) {
+      audioSystem.playAudioSequence(currentAudioParams);
+    }
+  } else if (key === 'S') {
+    // Stop all audio
+    if (audioSystem) {
+      audioSystem.stopAll();
+    }
+  }
+  // ========== END NEW SECTION ==========
+
 }
 
 function reloadWords() {
+  // loadJSON('words.json', (data) => {
+  //   words = ["Why AI?"].concat(Object.values(data));
+  //   prepareTextPoints();
+  //   initAnimation();
+  // });
+
+  // ========== MODIFIED: Enhanced reload function ==========
   loadJSON('words.json', (data) => {
-    words = ["Why AI?"].concat(Object.values(data));
+    if (data.words && data.audioParams) {
+      words = ["Why AI?"].concat(data.words);
+      currentAudioParams = data.audioParams;
+      console.log("🔄 Reloaded with audio params");
+    } else if (Array.isArray(data)) {
+      words = ["Why AI?"].concat(data);
+    }
     prepareTextPoints();
     initAnimation();
   });
+  // ========== END MODIFIED SECTION ==========
 }
 
 function mousePressed() {
@@ -199,6 +390,14 @@ function mousePressed() {
     userStartAudio().then(() => {
       audioStarted = true;
       console.log("🔊 Audio aktiviert");
+
+       // ========== NEW: Auto-play audio on first interaction ==========
+      if (audioSystem && currentAudioParams.length > 0) {
+        setTimeout(() => {
+          audioSystem.playAudioSequence(currentAudioParams);
+        }, 500);
+      }
+      // ========== END NEW SECTION ==========
     });
   }
 }
