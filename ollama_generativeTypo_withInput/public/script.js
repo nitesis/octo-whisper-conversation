@@ -13,13 +13,6 @@ let animationSpeed = 0.05;
 let loadedWords = [];
 let words = ["Why AI?"]; // Startfrage
 
-// // Oscillator
-// let osc;
-// let playing = false;
-
-// // Variable für Audiostart 
-// let audioStarted = false;
-
 // ========== MODIFIED: Enhanced oscillator system ==========
 let osc;
 let playing = false;
@@ -30,7 +23,6 @@ let audioSystem;
 let currentAudioParams = [];
 // ========== END MODIFIED SECTION ==========
 
-//const socket = new WebSocket('ws://localhost:8081');
 const socket = new WebSocket('ws://yourIP:8081');
 
 // Log, um zu prüfen, dass etwas ankommt
@@ -54,29 +46,6 @@ socket.onmessage = function(event) {
   }
 
   const [x, y, z] = data.gyro;
-
-//   // Frequenz aus einem Gyro-Wert berechnen, z. B. x-Achse
-//   let freq = p5.prototype.map(x, -3, 3, 200, 800);
-//   freq = p5.prototype.constrain(freq, 100, 1000);
-
-//   // Lautstärke aus z-Achse
-//   let volume = p5.prototype.map(Math.abs(z), 0, 5, 0, 0.5);
-//   volume = p5.prototype.constrain(volume, 0, 0.5);
-
-//   // Sicherstellen, dass freq & volume gültige Werte sind
-//   if (isFinite(freq) && isFinite(volume)) {
-//     // Ton aktivieren
-//     if (!playing) {
-//       osc.amp(volume, 0.1); // Lautstärke langsam anpassen
-//       osc.freq(freq, 0.1);  // Frequenz langsam anpassen
-//       playing = true;
-//     } else {
-//       osc.amp(volume, 0.1);
-//       osc.freq(freq, 0.1);
-//     }
-//   } else {
-//     console.warn("Ungültige Werte:", freq, volume);
-//   }
 
 // ========== MODIFIED: Enhanced gyro control ==========
   // Apply gyro data to both old oscillator AND new audio system
@@ -103,8 +72,6 @@ socket.onmessage = function(event) {
   }
   // ========== END MODIFIED SECTION ==========
 };
-
-
 
 const styles = [
   { name: "Clean", gridSpacing: 10, pointSize: 4, tolerance: 6, sampleFactor: 0.35 },
@@ -219,9 +186,6 @@ class P5AudioSystem {
 function preload() {
   font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Light.otf');
     
-  // loadedWords = loadJSON('words.json', () => {
-  //   words = ["Why AI?"].concat(Object.values(loadedWords));
-  // });
 // ========== MODIFIED: Load enhanced word data ==========
   loadedWords = loadJSON('words.json', (data) => {
     if (data.words && data.audioParams) {
@@ -364,12 +328,6 @@ function keyPressed() {
 }
 
 function reloadWords() {
-  // loadJSON('words.json', (data) => {
-  //   words = ["Why AI?"].concat(Object.values(data));
-  //   prepareTextPoints();
-  //   initAnimation();
-  // });
-
   // ========== MODIFIED: Enhanced reload function ==========
   loadJSON('words.json', (data) => {
     if (data.words && data.audioParams) {

@@ -91,10 +91,7 @@ app.post('/generate', async (req, res) => {
         .split(/\s+/)
         .map(word => word.replace(/(^[^a-zA-Z0-9äöüÄÖÜß'-]+|[^a-zA-Z0-9äöüÄÖÜß'-]+$)/g, ''))
         .filter(word => word.length > 0);
-      // fs.writeFileSync('public/words.json', JSON.stringify(words, null, 2));
-      // console.log("✅ Wörter gespeichert:", words);
-      // res.json({ words });
-
+      console.log("✅ Wörter gespeichert:", words);
       // ========== NEW: Generate ML Audio Parameters ==========
       const audioParams = audioML.generateAudioParams(words);
       
