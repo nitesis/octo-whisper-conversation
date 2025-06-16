@@ -125,17 +125,63 @@ class P5AudioSystem {
     this.isPlaying = true;
   }
 
-  playSound(param) {
-    // Create oscillator
+  // playSound(param) {
+  //   // Create oscillator
+  //   let osc = new p5.Oscillator(param.waveform);
+  //   let env = new p5.Envelope();
+    
+  //   // Configure envelope
+  //   env.setADSR(param.attack, 0.1, 0.3, param.release);
+  //   env.setRange(0.3, 0);
+    
+  //   // Set frequency with some gyro modulation
+  //   let modulatedFreq = param.frequency + (this.gyroModulation.x * 50);
+  //   osc.freq(modulatedFreq);
+    
+  //   // Apply effects
+  //   osc.disconnect();
+  //   osc.connect(this.effects.filter);
+  //   this.effects.filter.connect(this.effects.delay);
+  //   this.effects.delay.connect(this.effects.reverb);
+    
+  //   // Start sound
+  //   osc.start();
+  //   env.play(osc);
+    
+  //   // Store references
+  //   this.oscillators.push(osc);
+  //   this.envelopes.push(env);
+    
+  //   // Clean up after duration
+  //   setTimeout(() => {
+  //     osc.stop();
+  //     this.oscillators = this.oscillators.filter(o => o !== osc);
+  //     this.envelopes = this.envelopes.filter(e => e !== env);
+  //   }, param.duration * 1000);
+
+  //   console.log(`🔊 Playing: ${param.word} (${param.category}) at ${param.frequency}Hz`);
+  // }
+
+playSound(param) {
+  // Create multiple oscillators for richer sound
+  const numOscillators = 3;
+  const frequencies = [
+    param.frequency,
+    param.frequency * 1.5, // Fifth
+    param.frequency * 2    // Octave
+  ];
+  const volumes = [0.4, 0.2, 0.1];
+
+  frequencies.forEach((freq, i) => {
     let osc = new p5.Oscillator(param.waveform);
     let env = new p5.Envelope();
     
-    // Configure envelope
-    env.setADSR(param.attack, 0.1, 0.3, param.release);
-    env.setRange(0.3, 0);
+    // Configure envelope with sustain
+    env.setADSR(param.attack, 0.1, param.sustainLevel || 0.3, param.release);
+    env.setRange(volumes[i], 0);
     
-    // Set frequency with some gyro modulation
-    let modulatedFreq = param.frequency + (this.gyroModulation.x * 50);
+    // Set frequency with gyro modulation
+    let modulatedFreq = freq + (this.gyroModulation.x * 50);
     osc.freq(modulatedFreq);
     
     // Apply effects
@@ -158,9 +204,10 @@ class P5AudioSystem {
       this.oscillators = this.oscillators.filter(o => o !== osc);
       this.envelopes = this.envelopes.filter(e => e !== env);
     }, param.duration * 1000);
+  });
 
-    console.log(`🔊 Playing: ${param.word} (${param.category}) at ${param.frequency}Hz`);
-  }
+  console.log(`🔊 Playing layered sound: ${param.word} (${param.category})`);
+}
 
   applyGyroModulation(x, y, z) {
     this.gyroModulation = { x, y, z };
@@ -314,22 +361,30 @@ function keyPressed() {
     setupGrid();
     initAnimation();
   } else if (key === 'n') {
-    currentWord = (currentWord + 1) % wordPoints.length;
-    initAnimation();
+  currentWord = (currentWord + 1) % wordPoints.length;
+  initAnimation();
 
-    // NEW: Auto-play sound for new word
-    if (audioSystem && currentAudioParams.length > 0 && audioStarted) {
+  // NEW: Auto-play sound for new word
+  if (audioSystem && currentAudioParams.length > 0 && audioStarted) {
+    // Adjust index: currentWord 0 is "Why AI?" which has no audio params
+    // So audio params start at currentWord - 1
+    let audioIndex = currentWord - 1;
+    if (audioIndex >= 0 && audioIndex < currentAudioParams.length) {
       setTimeout(() => {
-        audioSystem.playAudioSequence(currentAudioParams, currentWord);
+        audioSystem.playAudioSequence(currentAudioParams, audioIndex);
       }, 200);
     }
   }
+}
 
    // ========== NEW: Audio control keys ==========
   else if (key === 'p' || key === ' ') {
     // Play ML-generated audio for current word only
     if (audioSystem && currentAudioParams.length > 0) {
-      audioSystem.playAudioSequence(currentAudioParams, currentWord);
+      let audioIndex = currentWord - 1;
+      if (audioIndex >= 0 && audioIndex < currentAudioParams.length) {
+        audioSystem.playAudioSequence(currentAudioParams, audioIndex);
+      }
     }
   } else if (key === 's') {
     // Stop all audio
