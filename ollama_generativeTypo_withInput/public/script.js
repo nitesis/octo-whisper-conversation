@@ -143,43 +143,6 @@ class P5AudioSystem {
     this.isPlaying = true;
   }
 
-  // playSound(param) {
-  //   // Create oscillator
-  //   let osc = new p5.Oscillator(param.waveform);
-  //   let env = new p5.Envelope();
-    
-  //   // Configure envelope
-  //   env.setADSR(param.attack, 0.1, 0.3, param.release);
-  //   env.setRange(0.3, 0);
-    
-  //   // Set frequency with some gyro modulation
-  //   let modulatedFreq = param.frequency + (this.gyroModulation.x * 50);
-  //   osc.freq(modulatedFreq);
-    
-  //   // Apply effects
-  //   osc.disconnect();
-  //   osc.connect(this.effects.filter);
-  //   this.effects.filter.connect(this.effects.delay);
-  //   this.effects.delay.connect(this.effects.reverb);
-    
-  //   // Start sound
-  //   osc.start();
-  //   env.play(osc);
-    
-  //   // Store references
-  //   this.oscillators.push(osc);
-  //   this.envelopes.push(env);
-    
-  //   // Clean up after duration
-  //   setTimeout(() => {
-  //     osc.stop();
-  //     this.oscillators = this.oscillators.filter(o => o !== osc);
-  //     this.envelopes = this.envelopes.filter(e => e !== env);
-  //   }, param.duration * 1000);
-
-  //   console.log(`🔊 Playing: ${param.word} (${param.category}) at ${param.frequency}Hz`);
-  // }
-
 playSound(param) {
   // Create multiple oscillators for richer sound
   const numOscillators = 3;
@@ -292,20 +255,6 @@ playSound(param) {
     if (!this.bassOsc) return;
     
     // Only trigger bass at intervals
-    // if (millis() - this.bassTimer > this.bassInterval) {
-    //   // Calculate bass frequency based on current word/animation state
-    //   let bassFreq = map(currentWord, 0, words.length - 1, 30, 120);
-      
-    //   // Add some gyro modulation
-    //   bassFreq += this.gyroModulation.z * 10;
-    //   bassFreq = constrain(bassFreq, 30, 120);
-      
-    //   this.bassOsc.freq(bassFreq);
-    //   this.bassEnv.play(this.bassOsc);
-      
-    //   this.bassTimer = millis();
-    //   console.log(`🎵 Bass hit at ${bassFreq}Hz`);
-    // }
     if (millis() - this.bassTimer > this.bassInterval) {
       // Calculate bass frequency based on current word/animation state
       let bassFreq = map(currentWord, 0, words.length - 1, 40, 80); // Narrower, more audible range
