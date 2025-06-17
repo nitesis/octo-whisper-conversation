@@ -84,6 +84,12 @@ class P5AudioSystem {
   constructor() {
     this.oscillators = [];
     this.envelopes = [];
+    // New lines for bass layer
+    this.bassOsc = null;
+    this.bassEnv = null;
+    this.bassTimer = 0;
+    this.bassInterval = 2000; // Bass plays every 2 seconds (much slower than flicker)
+    // END NEW LINES
     this.effects = {
       reverb: null,
       delay: null,
@@ -101,6 +107,15 @@ class P5AudioSystem {
     this.effects.reverb = new p5.Reverb();
     this.effects.delay = new p5.Delay();
     this.effects.filter = new p5.LowPass();
+
+    // MODIFY THESE LINES for better bass envelope
+    this.bassOsc = new p5.Oscillator('sine');
+    this.bassEnv = new p5.Envelope();
+    this.bassEnv.setADSR(0.3, 0.4, 0.7, 1.2); // Much longer attack, decay, and release for bass
+    this.bassEnv.setRange(0.6, 0); // Higher volume for bass
+    this.bassOsc.start();
+    this.bassOsc.amp(0);
+    // END MODIFIED LINES
     
     console.log("🎵 P5AudioSystem initialized");
   }
@@ -235,6 +250,13 @@ playSound(param) {
     this.oscillators.forEach(osc => osc.stop());
     this.oscillators = [];
     this.envelopes = [];
+
+    // ADD THESE LINES for bass cleanup
+    if (this.bassOsc) {
+      this.bassOsc.amp(0, 0.1);
+    }
+    // END NEW LINES
+
     this.isPlaying = false;
   }
 
@@ -264,8 +286,46 @@ playSound(param) {
     this.continuousParam = null;
     this.stopAll();
   }
+
+  // Bass control method
+  updateBass() {
+    if (!this.bassOsc) return;
+    
+    // Only trigger bass at intervals
+    // if (millis() - this.bassTimer > this.bassInterval) {
+    //   // Calculate bass frequency based on current word/animation state
+    //   let bassFreq = map(currentWord, 0, words.length - 1, 30, 120);
+      
+    //   // Add some gyro modulation
+    //   bassFreq += this.gyroModulation.z * 10;
+    //   bassFreq = constrain(bassFreq, 30, 120);
+      
+    //   this.bassOsc.freq(bassFreq);
+    //   this.bassEnv.play(this.bassOsc);
+      
+    //   this.bassTimer = millis();
+    //   console.log(`🎵 Bass hit at ${bassFreq}Hz`);
+    // }
+    if (millis() - this.bassTimer > this.bassInterval) {
+      // Calculate bass frequency based on current word/animation state
+      let bassFreq = map(currentWord, 0, words.length - 1, 40, 80); // Narrower, more audible range
+      
+      // Add some gyro modulation
+      bassFreq += this.gyroModulation.z * 5; // Less modulation for stability
+      bassFreq = constrain(bassFreq, 35, 100);
+      
+      this.bassOsc.freq(bassFreq);
+      
+      // Play the envelope - this creates the bass "hit"
+      this.bassEnv.play(this.bassOsc);
+      
+      this.bassTimer = millis();
+      console.log(`🎵 Bass hit at ${bassFreq}Hz for ~2 seconds`);
+    }
+  }
+
 }
-// ========== END NEW SECTION ==========
+// ========== END: P5AudioSystem Class ==========
 
 function preload() {
   font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Light.otf');
@@ -351,6 +411,10 @@ function draw() {
   let tolerance = styles[styleIndex].tolerance;
   let size = styles[styleIndex].pointSize;
 
+  // ADD THIS LINE to update bass based on animation
+  let activePointCount = 0; // Count active flickering points
+  // END NEW LINE
+
   for (let i = 0; i < grid.length; i++) {
     let gv = grid[i];
     let active = false;
@@ -363,6 +427,10 @@ function draw() {
 
     // Animation: flackernd einblenden
     if (active) {
+      // ADD THIS LINE fpr bass
+      activePointCount++;
+      // END NEW LINE
+
       if (pointTimers[i] <= 0 && animationProgress[i] < 1) {
         animationProgress[i] += animationSpeed;
       } else {
@@ -375,9 +443,15 @@ function draw() {
       ellipse(gv.x, gv.y, size, size);
     }
   }
-
-  // Nach X Sekunden neues Wort (optional)
-  // oder per Taste `N` (siehe keyPressed)
+  
+  // Update bass based on flickering activity
+  if (audioSystem && audioStarted) {
+    // Adjust bass interval based on animation activity
+    let activityRatio = activePointCount / grid.length;
+    audioSystem.bassInterval = map(activityRatio, 0, 0.1, 3000, 1500); // More activity = faster bass
+    audioSystem.updateBass();
+  }
+  // END NEW LINES
 }
 
 function easeInOut(t) {
