@@ -169,7 +169,7 @@ class P5AudioSystem {
     this.effects.reverb.set(3, 2); // Long, spacious reverb
     
     this.effects.delay = new p5.Delay();
-    this.effects.delay.set(0.3, 0.4, 2300); // Gentle delay
+    this.effects.delay.process(this.effects.reverb, 0.3, 0.4, 2300); // Gentle delay
     
     this.effects.filter = new p5.LowPass();
     this.effects.filter.freq(800); // Warmer, filtered sound
@@ -264,54 +264,139 @@ class P5AudioSystem {
 //   console.log(`🔊 Playing layered sound: ${param.word} (${param.category})`);
 // }
 
+// playSound(param) {
+//     // MODIFIED: Create gentler, more harmonic oscillators
+//     const frequencies = [
+//       param.frequency * 0.5, // Lower octave
+//       param.frequency,       // Fundamental
+//       param.frequency * 1.2  // Gentle fifth (not perfect fifth)
+//     ];
+//     const volumes = [0.15, 0.2, 0.1]; // Much quieter overall
+
+//     frequencies.forEach((freq, i) => {
+//       let osc = new p5.Oscillator('sine'); // Always use sine for smoothness
+//       let env = new p5.Envelope();
+      
+//       // MODIFIED: Much gentler envelope
+//       env.setADSR(
+//         Math.max(param.attack, 0.5),    // Minimum 0.5s attack
+//         0.3,                           // Gentle decay
+//         param.sustainLevel || 0.6,     // Higher sustain
+//         Math.max(param.release, 1.0)   // Minimum 1s release
+//       );
+//       env.setRange(volumes[i], 0);
+      
+//       // Gentle frequency modulation
+//       let modulatedFreq = freq + (this.gyroModulation.x * 10); // Much less modulation
+//       osc.freq(modulatedFreq);
+      
+//       // Connect through all effects for spacious sound
+//       osc.disconnect();
+//       osc.connect(this.effects.filter);
+//       this.effects.filter.connect(this.effects.delay);
+//       this.effects.delay.connect(this.effects.reverb);
+      
+//       osc.start();
+//       env.play(osc);
+      
+//       this.oscillators.push(osc);
+//       this.envelopes.push(env);
+      
+//       // Extended cleanup time
+//       setTimeout(() => {
+//         osc.stop();
+//         this.oscillators = this.oscillators.filter(o => o !== osc);
+//         this.envelopes = this.envelopes.filter(e => e !== env);
+//       }, (param.duration + 2) * 1000); // Extra fade time
+//     });
+
+//     console.log(`🔊 Playing relaxing sound: ${param.word}`);
+//   }
+
 playSound(param) {
-    // MODIFIED: Create gentler, more harmonic oscillators
-    const frequencies = [
-      param.frequency * 0.5, // Lower octave
-      param.frequency,       // Fundamental
-      param.frequency * 1.2  // Gentle fifth (not perfect fifth)
-    ];
-    const volumes = [0.15, 0.2, 0.1]; // Much quieter overall
+  // Hybride Variante aus Einzeltönen und Klangteppich
+  // Primärer Tropfenklang
+  let mainOsc = new p5.Oscillator('sine');
+  let mainEnv = new p5.Envelope();
 
-    frequencies.forEach((freq, i) => {
-      let osc = new p5.Oscillator('sine'); // Always use sine for smoothness
-      let env = new p5.Envelope();
-      
-      // MODIFIED: Much gentler envelope
-      env.setADSR(
-        Math.max(param.attack, 0.5),    // Minimum 0.5s attack
-        0.3,                           // Gentle decay
-        param.sustainLevel || 0.6,     // Higher sustain
-        Math.max(param.release, 1.0)   // Minimum 1s release
-      );
-      env.setRange(volumes[i], 0);
-      
-      // Gentle frequency modulation
-      let modulatedFreq = freq + (this.gyroModulation.x * 10); // Much less modulation
-      osc.freq(modulatedFreq);
-      
-      // Connect through all effects for spacious sound
-      osc.disconnect();
-      osc.connect(this.effects.filter);
-      this.effects.filter.connect(this.effects.delay);
-      this.effects.delay.connect(this.effects.reverb);
-      
-      osc.start();
-      env.play(osc);
-      
-      this.oscillators.push(osc);
-      this.envelopes.push(env);
-      
-      // Extended cleanup time
-      setTimeout(() => {
-        osc.stop();
-        this.oscillators = this.oscillators.filter(o => o !== osc);
-        this.envelopes = this.envelopes.filter(e => e !== env);
-      }, (param.duration + 2) * 1000); // Extra fade time
-    });
+  const attack = 0.05;
+  const decay = 0.3;
+  const sustain = 0.1;
+  const release = 2.5;
 
-    console.log(`🔊 Playing relaxing sound: ${param.word}`);
+  mainEnv.setADSR(attack, decay, sustain, release);
+  mainEnv.setRange(0.2, 0); // Hauptton etwas präsenter
+
+  // 🎼 Frequenzmapping (z. B. auf beruhigende Tonleiter)
+  const baseFreq = this.mapToRelaxingFreq
+    ? this.mapToRelaxingFreq(param.frequency)
+    : param.frequency;
+
+  const modulatedFreq = baseFreq + (this.gyroModulation.x * 10);
+  mainOsc.freq(modulatedFreq);
+
+  // 🔗 Effektroute
+  mainOsc.disconnect();
+  mainOsc.connect(this.effects.filter);
+  this.effects.filter.connect(this.effects.reverb);
+  this.effects.reverb.connect(this.effects.delay);
+
+  mainOsc.start();
+  mainEnv.play(mainOsc);
+
+  this.oscillators.push(mainOsc);
+  this.envelopes.push(mainEnv);
+
+  // 🌫️ Zweiter, leiser Layer für Tiefe (z. B. eine Oktave tiefer)
+  let layerOsc = new p5.Oscillator('sine');
+  let layerEnv = new p5.Envelope();
+  layerEnv.setADSR(0.5, 0.6, 0.2, 3.0); // Weicher Anstieg, sehr langes Release
+  layerEnv.setRange(0.08, 0); // Dezent im Hintergrund
+
+  const harmonicFreq = baseFreq * 0.5; // Oktave tiefer
+  layerOsc.freq(harmonicFreq);
+
+  // Gleiche Effektroute
+  layerOsc.disconnect();
+  layerOsc.connect(this.effects.filter);
+
+  layerOsc.start();
+  layerEnv.play(layerOsc);
+
+  this.oscillators.push(layerOsc);
+  this.envelopes.push(layerEnv);
+
+  // 🕓 Cleanup nach Klangende (Release + Pufferzeit)
+  const cleanupTime = (param.duration || 1) + 3;
+
+  setTimeout(() => {
+    mainOsc.stop();
+    layerOsc.stop();
+    this.oscillators = this.oscillators.filter(o => o !== mainOsc && o !== layerOsc);
+    this.envelopes = this.envelopes.filter(e => e !== mainEnv && e !== layerEnv);
+  }, cleanupTime * 1000);
+
+  console.log(`🎧 Hybrid sound: ${param.word} → ${baseFreq.toFixed(1)} Hz`);
+}
+
+// Hilfsfunktion 
+mapToRelaxingFreq(f) {
+  const baseScale = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00, 246.94]; // C-Dur
+  const scale = [];
+
+  // Generiere 4 Oktaven von C3 (~130 Hz) bis C7 (~2093 Hz)
+  for (let i = 0; i < 4; i++) {
+    scale.push(...baseScale.map(note => note * Math.pow(2, i)));
   }
+
+  const closest = scale.reduce((prev, curr) =>
+    Math.abs(curr - f) < Math.abs(prev - f) ? curr : prev
+  );
+
+  console.log(`Mapping ${f} Hz to closest ${closest} Hz`);
+  return closest;
+}
+
 
   // applyGyroModulation(x, y, z) {
   //   this.gyroModulation = { x, y, z };
@@ -455,6 +540,7 @@ playSound(param) {
       console.log(`🎵 Bass hit at ${bassFreq}Hz for ~2 seconds`);
     }
   }
+  
 
 }
 // ========== END: P5AudioSystem Class ==========
