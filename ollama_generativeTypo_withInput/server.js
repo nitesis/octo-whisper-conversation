@@ -149,5 +149,55 @@ const udpPort = new osc.UDPPort({
     }
   });
   
+  // Debug-Code
+  udpPort.on("ready", function () {
+      console.log("🎯 OSC Server bereit auf Port 5000");
+  });
+
+  udpPort.on("error", function (error) {
+      console.log("❌ OSC Fehler:", error.message);
+  });
+
+  // Modifiziere die bestehende message-Handler:
+  udpPort.on("message", function (oscMsg) {
+      console.log("🎮 RAW OSC empfangen:", {
+          address: oscMsg.address,
+          args: oscMsg.args,
+          timestamp: new Date().toISOString()
+      });
+      
+      const data = oscMsg.args;
+      
+      // Debug: Was wird an WebSocket gesendet?
+      const payload = JSON.stringify({ gyro: data });
+      console.log("📤 Sende an WebSocket:", payload);
+      
+      for (const client of clients) {
+          client.send(payload);
+      }
+  });
+  // Debug Code Ende
+
   udpPort.open();
+
+  udpPort.open();
+
+// TEST: GyrOSC Simulator (temporär)
+console.log("🧪 Starte Test-Gyro-Simulator...");
+setInterval(() => {
+  const testData = [
+    Math.sin(Date.now() * 0.001) * 2,
+    Math.cos(Date.now() * 0.002) * 2, 
+    Math.sin(Date.now() * 0.0005) * 3
+  ];
+  
+  console.log("🧪 Test-Gyro-Daten:", testData);
+  
+  for (const client of clients) {
+    client.send(JSON.stringify({ gyro: testData }));
+  }
+}, 1000); // Jede Sekunde
+// Ende TEST: GyrOSC Simulator (temporär)
+
+
   
