@@ -23,24 +23,7 @@ let audioSystem;
 let currentAudioParams = [];
 // ========== END MODIFIED SECTION ==========
 
-const socket = new WebSocket('yourIP:8081');
-
-// Debug Code
-socket.onopen = () => {
-    console.log("✅ WebSocket verbunden zu Server");
-    setInterval(() => {
-        console.log("💓 WebSocket Status:", socket.readyState);
-    }, 5000);
-};
-
-socket.onerror = (error) => {
-    console.log("❌ WebSocket Fehler:", error);
-};
-
-socket.onclose = () => {
-    console.log("🔴 WebSocket Verbindung geschlossen");
-};
-// Debug Code Ende
+const socket = new WebSocket('ws://yourIP:8081');
 
 // Log, um zu prüfen, dass etwas ankommt
 socket.onopen = () => console.log("✅ WebSocket verbunden");
@@ -48,7 +31,6 @@ socket.onmessage = (event) => {
   console.log("📡 GyrOSC Daten empfangen:", event.data);
 };
 
-// 1. UPDATE: Softer gyro control in socket.onmessage
 socket.onmessage = function(event) {
   const data = JSON.parse(event.data);
 
@@ -66,23 +48,21 @@ socket.onmessage = function(event) {
   const [x, y, z] = data.gyro;
 
 // ========== MODIFIED: Enhanced gyro control ==========
+  // Apply gyro data to both old oscillator AND new audio systemMore actions
+  let freq = p5.prototype.map(x, -3, 3, 200, 800);
+  freq = p5.prototype.constrain(freq, 100, 1000);
+  let volume = p5.prototype.map(Math.abs(z), 0, 5, 0, 0.5);
+  volume = p5.prototype.constrain(volume, 0, 0.5);
 
-   // MODIFIED: Much gentler frequency and volume ranges
-  let freq = p5.prototype.map(x, -3, 3, 150, 400); // Lower, warmer frequencies
-  freq = p5.prototype.constrain(freq, 120, 450);
-  let volume = p5.prototype.map(Math.abs(z), 0, 5, 0, 0.2); // Much quieter max volume
-  volume = p5.prototype.constrain(volume, 0, 0.25);
-
-
-  // Smoother transitions for old oscillator
+  // Old oscillator (keeping for backup)
   if (isFinite(freq) && isFinite(volume)) {
     if (!playing) {
-      osc.amp(volume, 0.3); // Slower fade-in
-      osc.freq(freq, 0.3);
+      osc.amp(volume, 0.1);
+      osc.freq(freq, 0.1);
       playing = true;
     } else {
-      osc.amp(volume, 0.3); // Slower transitions
-      osc.freq(freq, 0.3);
+      osc.amp(volume, 0.1);
+      osc.freq(freq, 0.1);
     }
   }
 
@@ -100,17 +80,17 @@ const styles = [
 ];
 
 
-// 2. REPLACE: P5AudioSystem with relaxing modifications
+// ========== NEW: P5AudioSystem Class ==========More actions
 class P5AudioSystem {
   constructor() {
     this.oscillators = [];
     this.envelopes = [];
-    this.ambientOsc = null; // NEW: Continuous ambient layer
-    this.ambientGain = null;
+    // New lines for bass layer
     this.bassOsc = null;
     this.bassEnv = null;
     this.bassTimer = 0;
-    this.bassInterval = 4000; // MODIFIED: Slower bass (every 4 seconds)
+    this.bassInterval = 2000; // Bass plays every 2 seconds (much slower than flicker)
+    // END NEW LINES
     this.effects = {
       reverb: null,
       delay: null,
@@ -118,39 +98,27 @@ class P5AudioSystem {
     };
     this.isPlaying = false;
     this.gyroModulation = { x: 0, y: 0, z: 0 };
+    // ADD THESE LINES for coninously sound play of current word
     this.isContinuous = false;
     this.continuousParam = null;
   }
 
   init() {
-    // Initialize effects with relaxing settings
+    // Initialize effects
     this.effects.reverb = new p5.Reverb();
-    this.effects.reverb.set(3, 2); // Long, spacious reverb
-    
     this.effects.delay = new p5.Delay();
-    this.effects.delay.process(this.effects.reverb, 0.3, 0.4, 2300); // Gentle delay
-    
     this.effects.filter = new p5.LowPass();
-    this.effects.filter.freq(800); // Warmer, filtered sound
 
-    // NEW: Ambient layer for continuous calm sound
-    this.ambientOsc = new p5.Oscillator('sine');
-    this.ambientGain = new p5.Gain();
-    this.ambientOsc.connect(this.ambientGain);
-    this.ambientGain.connect(this.effects.reverb);
-    this.ambientOsc.freq(55); // Very low, barely audible drone
-    this.ambientOsc.start();
-    this.ambientGain.amp(0.05); // Very quiet
-
-    // MODIFIED: Gentler bass with longer envelope
+    // MODIFY THESE LINES for better bass envelope
     this.bassOsc = new p5.Oscillator('sine');
     this.bassEnv = new p5.Envelope();
-    this.bassEnv.setADSR(0.8, 0.6, 0.4, 2.0); // Very slow, gentle bass
-    this.bassEnv.setRange(0.3, 0); // Quieter bass
+    this.bassEnv.setADSR(0.3, 0.4, 0.7, 1.2); // Much longer attack, decay, and release for bass
+    this.bassEnv.setRange(0.6, 0); // Higher volume for bass
     this.bassOsc.start();
     this.bassOsc.amp(0);
-    
-    console.log("🎵 Relaxing P5AudioSystem initialized");
+    // END MODIFIED LINES
+
+    console.log("🎵 P5AudioSystem initialized");
   }
 
   playAudioSequence(audioParams, wordIndex = null) {
@@ -179,147 +147,69 @@ class P5AudioSystem {
 
 
 playSound(param) {
-  // Hybride Variante aus Einzeltönen und Klangteppich
-  // Primärer Tropfenklang
-  let mainOsc = new p5.Oscillator('sine');
-  let mainEnv = new p5.Envelope();
+  // Create multiple oscillators for richer sound
+  const numOscillators = 3;
+  const frequencies = [
+    param.frequency,
+    param.frequency * 1.5, // FifthMore actions
+    param.frequency * 2    // Octave
+  ];
+  const volumes = [0.4, 0.2, 0.1];
 
-  const attack = 0.05;
-  const decay = 0.3;
-  const sustain = 0.1;
-  const release = 2.5;
+  frequencies.forEach((freq, i) => {
+    let osc = new p5.Oscillator(param.waveform);
+    let env = new p5.Envelope();
 
-  mainEnv.setADSR(attack, decay, sustain, release);
-  mainEnv.setRange(0.2, 0); // Hauptton etwas präsenter
+    // Configure envelope with sustain
+    env.setADSR(param.attack, 0.1, param.sustainLevel || 0.3, param.release);
+    env.setRange(volumes[i], 0);
 
-  // 🎼 Frequenzmapping (z. B. auf beruhigende Tonleiter)
-  const baseFreq = this.mapToRelaxingFreq
-    ? this.mapToRelaxingFreq(param.frequency)
-    : param.frequency;
+    // Set frequency with gyro modulation
+    let modulatedFreq = freq + (this.gyroModulation.x * 50);
+    osc.freq(modulatedFreq);
 
-  const modulatedFreq = baseFreq + (this.gyroModulation.x * 10);
-  mainOsc.freq(modulatedFreq);
+    // Apply effects
+    osc.disconnect();
+    osc.connect(this.effects.filter);
+    this.effects.filter.connect(this.effects.delay);
+    this.effects.delay.connect(this.effects.reverb);
 
-  // 🔗 Effektroute
-  mainOsc.disconnect();
-  mainOsc.connect(this.effects.filter);
-  this.effects.filter.connect(this.effects.reverb);
-  this.effects.reverb.connect(this.effects.delay);
+    // Start sound
+    osc.start();
+    env.play(osc);
 
-  mainOsc.start();
-  mainEnv.play(mainOsc);
+    // Store references
+    this.oscillators.push(osc);
+    this.envelopes.push(env);
 
-  this.oscillators.push(mainOsc);
-  this.envelopes.push(mainEnv);
+    // Clean up after duration
+    setTimeout(() => {
+      osc.stop();
+      this.oscillators = this.oscillators.filter(o => o !== osc);
+      this.envelopes = this.envelopes.filter(e => e !== env);
+    }, param.duration * 1000);
+  });
 
-  // 🌫️ Zweiter, leiser Layer für Tiefe (z. B. eine Oktave tiefer)
-  let layerOsc = new p5.Oscillator('sine');
-  let layerEnv = new p5.Envelope();
-  layerEnv.setADSR(0.5, 0.6, 0.2, 3.0); // Weicher Anstieg, sehr langes Release
-  layerEnv.setRange(0.08, 0); // Dezent im Hintergrund
-
-  const harmonicFreq = baseFreq * 0.5; // Oktave tiefer
-  layerOsc.freq(harmonicFreq);
-
-  // Gleiche Effektroute
-  layerOsc.disconnect();
-  layerOsc.connect(this.effects.filter);
-
-  layerOsc.start();
-  layerEnv.play(layerOsc);
-
-  this.oscillators.push(layerOsc);
-  this.envelopes.push(layerEnv);
-
-  // 🕓 Cleanup nach Klangende (Release + Pufferzeit)
-  const cleanupTime = (param.duration || 1) + 3;
-
-  setTimeout(() => {
-    mainOsc.stop();
-    layerOsc.stop();
-    this.oscillators = this.oscillators.filter(o => o !== mainOsc && o !== layerOsc);
-    this.envelopes = this.envelopes.filter(e => e !== mainEnv && e !== layerEnv);
-  }, cleanupTime * 1000);
-
-  console.log(`🎧 Hybrid sound: ${param.word} → ${baseFreq.toFixed(1)} Hz`);
+  console.log(`🔊 Playing layered sound: ${param.word} (${param.category})`);
 }
-
-// Hilfsfunktion 
-mapToRelaxingFreq(f) {
-  const baseScale = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00, 246.94]; // C-Dur
-  const scale = [];
-
-  // Generiere 4 Oktaven von C3 (~130 Hz) bis C7 (~2093 Hz)
-  for (let i = 0; i < 4; i++) {
-    scale.push(...baseScale.map(note => note * Math.pow(2, i)));
-  }
-
-  const closest = scale.reduce((prev, curr) =>
-    Math.abs(curr - f) < Math.abs(prev - f) ? curr : prev
-  );
-
-  console.log(`Mapping ${f} Hz to closest ${closest} Hz`);
-  return closest;
-}
-
 
   applyGyroModulation(x, y, z) {
     this.gyroModulation = { x, y, z };
-    
-    // MODIFIED: Much gentler real-time modulation
+
+    // Apply real-time modulation to active oscillators
     this.oscillators.forEach((osc, index) => {
       if (this.currentParams && this.currentParams[index]) {
         let baseFreq = this.currentParams[index].frequency;
-        let modulatedFreq = baseFreq + (x * 8) + (y * 5); // Much less modulation
-        osc.freq(modulatedFreq, 0.2); // Slower transitions
+        let modulatedFreq = baseFreq + (x * 30) + (y * 20);
+        osc.freq(modulatedFreq, 0.1);
       }
     });
 
-    // Gentle filter modulation
+    // Modulate effects
     if (this.effects.filter) {
-      let filterFreq = p5.prototype.map(Math.abs(z), 0, 3, 400, 1200); // Warmer range
-      this.effects.filter.freq(filterFreq, 0.3); // Smooth transitions
+      let filterFreq = p5.prototype.map(Math.abs(z), 0, 3, 200, 2000);
+      this.effects.filter.freq(filterFreq);
     }
-
-    // NEW: Modulate ambient layer very subtly
-    if (this.ambientOsc) {
-      let ambientFreq = 55 + (Math.sin(millis() * 0.001) * 5) + (z * 2);
-      this.ambientOsc.freq(ambientFreq, 0.5);
-    }
-  }
-
-  updateBass() {
-    if (!this.bassOsc) return;
-    
-    // MODIFIED: Even slower, gentler bass
-    if (millis() - this.bassTimer > this.bassInterval) {
-      let bassFreq = map(currentWord, 0, words.length - 1, 35, 65); // Lower range
-      bassFreq += this.gyroModulation.z * 2; // Minimal modulation
-      bassFreq = constrain(bassFreq, 30, 70);
-      
-      this.bassOsc.freq(bassFreq);
-      this.bassEnv.play(this.bassOsc);
-      
-      this.bassTimer = millis();
-      console.log(`🎵 Gentle bass at ${bassFreq}Hz`);
-    }
-  }
-
-  // NEW: Add nature-inspired sounds
-  addNatureSounds() {
-    // Gentle wind-like oscillation
-    let windOsc = new p5.Oscillator('sine');
-    let windGain = new p5.Gain();
-    windOsc.connect(windGain);
-    windGain.connect(this.effects.reverb);
-    windOsc.freq(80);
-    windOsc.start();
-    
-    // Slowly varying amplitude for wind effect
-    setInterval(() => {
-      let windAmp = map(noise(millis() * 0.0005), 0, 1, 0.02, 0.08);
-      windGain.amp(windAmp, 1.0);
-    }, 100);
   }
 
   stopAll() {
@@ -329,8 +219,7 @@ mapToRelaxingFreq(f) {
 
     // ADD THESE LINES for bass cleanup
     if (this.bassOsc) {
-      // this.bassOsc.amp(0, 0.1);
-      this.bassOsc.amp(0, 0.5); // Gentle fade out
+      this.bassOsc.amp(0, 0.1);
     }
     // END NEW LINES
 
@@ -364,29 +253,28 @@ mapToRelaxingFreq(f) {
     this.stopAll();
   }
 
-  // Bass control method
+  // Bass control methodMore actions
   updateBass() {
     if (!this.bassOsc) return;
-    
+
     // Only trigger bass at intervals
     if (millis() - this.bassTimer > this.bassInterval) {
       // Calculate bass frequency based on current word/animation state
       let bassFreq = map(currentWord, 0, words.length - 1, 40, 80); // Narrower, more audible range
-      
+
       // Add some gyro modulation
       bassFreq += this.gyroModulation.z * 5; // Less modulation for stability
       bassFreq = constrain(bassFreq, 35, 100);
-      
+
       this.bassOsc.freq(bassFreq);
-      
+
       // Play the envelope - this creates the bass "hit"
       this.bassEnv.play(this.bassOsc);
-      
+
       this.bassTimer = millis();
       console.log(`🎵 Bass hit at ${bassFreq}Hz for ~2 seconds`);
     }
   }
-  
 
 }
 // ========== END: P5AudioSystem Class ==========
@@ -412,9 +300,6 @@ function preload() {
 
 }
 
-
-
-// 3. MODIFY: setup() function to initialize relaxing audio
 function setup() {
   createCanvas(800, 300);
   noStroke();
@@ -422,20 +307,15 @@ function setup() {
   setupGrid();
   initAnimation();
 
-  // MODIFIED: Use triangle wave for warmer old oscillator
-  osc = new p5.Oscillator('triangle');
+  // Old oscillator (keeping for backup)More actions
+  osc = new p5.Oscillator('sine');
   osc.start();
-  osc.amp(0);
+  osc.amp(0); // Startet lautlos
 
+  // ========== NEW: Initialize audio system ==========
   audioSystem = new P5AudioSystem();
   audioSystem.init();
-  
-  // NEW: Add nature sounds after user interaction
-  setTimeout(() => {
-    if (audioStarted && audioSystem) {
-      audioSystem.addNatureSounds();
-    }
-  }, 2000);
+  // ========== END NEW SECTION ==========
 }
 
 function prepareTextPoints() {
@@ -473,20 +353,19 @@ function initAnimation() {
   pointTimers = grid.map(() => random(0, 1.5)); // versetzter Start
 }
 
-
-
-// 4. MODIFY: draw() function for gentler bass timing
 function draw() {
   background(0);
   fill(80);
-  
-  for (let gv of grid) ellipse(gv.x, gv.y, 2, 2);
+
+  for (let gv of grid) ellipse(gv.x, gv.y, 2, 2); // Grundraster
 
   let pts = wordPoints[currentWord];
   let tolerance = styles[styleIndex].tolerance;
   let size = styles[styleIndex].pointSize;
 
-  let activePointCount = 0;
+  // ADD THIS LINE to update bass based on animation
+  let activePointCount = 0; // Count active flickering points
+  // END NEW LINE
 
   for (let i = 0; i < grid.length; i++) {
     let gv = grid[i];
@@ -498,8 +377,11 @@ function draw() {
       }
     }
 
+    // Animation: flackernd einblenden
     if (active) {
+      // ADD THIS LINE fpr bass
       activePointCount++;
+      // END NEW LINE
 
       if (pointTimers[i] <= 0 && animationProgress[i] < 1) {
         animationProgress[i] += animationSpeed;
@@ -507,20 +389,21 @@ function draw() {
         pointTimers[i] -= 0.016;
       }
 
-      // MODIFIED: Gentler flicker effect
-      let flicker = random() < 0.05 ? 100 : 200; // Less contrast, less frequent
+      let flicker = random() < 0.1 ? 50 : 255;
       let alpha = easeInOut(animationProgress[i]) * flicker;
       fill(255, alpha);
       ellipse(gv.x, gv.y, size, size);
     }
   }
-  
-  // MODIFIED: Slower bass response to activity
+
+  // Update bass based on flickering activity
   if (audioSystem && audioStarted) {
+    // Adjust bass interval based on animation activity
     let activityRatio = activePointCount / grid.length;
-    audioSystem.bassInterval = map(activityRatio, 0, 0.1, 6000, 3000); // Slower overall
+    audioSystem.bassInterval = map(activityRatio, 0, 0.1, 3000, 1500); // More activity = faster bassMore actions
     audioSystem.updateBass();
   }
+  // END NEW LINES
 }
 
 function easeInOut(t) {
