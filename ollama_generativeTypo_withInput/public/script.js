@@ -25,6 +25,23 @@ let currentAudioParams = [];
 
 const socket = new WebSocket('ws://yourIP:8081');
 
+// Debug Code
+socket.onopen = () => {
+    console.log("✅ WebSocket verbunden zu Server");
+    setInterval(() => {
+        console.log("💓 WebSocket Status:", socket.readyState);
+    }, 5000);
+};
+
+socket.onerror = (error) => {
+    console.log("❌ WebSocket Fehler:", error);
+};
+
+socket.onclose = () => {
+    console.log("🔴 WebSocket Verbindung geschlossen");
+};
+// Debug Code Ende
+
 // Log, um zu prüfen, dass etwas ankommt
 socket.onopen = () => console.log("✅ WebSocket verbunden");
 socket.onmessage = (event) => {
